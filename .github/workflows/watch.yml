@@ -1,0 +1,35 @@
+name: Think2 watcher
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes (GitHub may run it a bit late)
+  workflow_dispatch:          # adds a "Run workflow" button for testing
+
+permissions:
+  contents: write             # lets the job save seen_items.json back to the repo
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests beautifulsoup4
+
+      - name: Check for new items
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python think2_watcher.py
+
+      - name: Save seen items
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_items.json
+          git diff --staged --quiet || git commit -m "Update seen items"
+          git push
